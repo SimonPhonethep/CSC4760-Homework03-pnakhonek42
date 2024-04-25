@@ -54,7 +54,7 @@ int main(int argc, char *argv[]) {
     for (i = 0; i < P; i++) {
         if (coords[0] == i) {
             printf("Process (%d, %d) - y: ", coords[0], coords[1]);
-            for (j = 0; j < local_M; j++) {
+            for (j = 0; j < M/P; j++) {
                 printf("%d ", y[j]);
             }
             printf("\n");

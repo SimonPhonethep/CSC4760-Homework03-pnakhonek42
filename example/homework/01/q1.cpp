@@ -6,8 +6,10 @@
 int main(int argc, char *argv[]) {
     int M = 25;
 
-    int P, Q;
-    int i, j;
+    int P;
+    int Q;
+    int i;
+    int j;
 
     int rank, size;
     MPI_Init(&argc, &argv);

@@ -1,61 +1,46 @@
-#include <mpi.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <mpi.h>
 
-int main(int argc, char** argv) {
-    MPI_Init(&argc, &argv);
-
+int main(int argc, char *argv[]) {
     int M = 25;
-
-    int size;
-    MPI_Comm_size(MPI_COMM_WORLD, &size);
-
-    int rank;
+    int P = 1;
+    int Q;
+    int rank, size;
+    MPI_Init(&argc, &argv);
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    MPI_Comm_size(MPI_COMM_WORLD, &size);
+    Q = size;
 
-    int P = size; 
-    int Q = 1;
+        int dims[2] = {P, Q};
+    int periods[2] = {0, 0};
+    MPI_Comm cart_comm;
+    MPI_Cart_create(MPI_COMM_WORLD, 2, dims, periods, 0, &cart_comm);
 
-    MPI_Comm split_comm1;
-    int color1 = rank / Q;
-    MPI_Comm_split(MPI_COMM_WORLD, color1, rank, &split_comm1);
+    int coords[2];
+    MPI_Cart_coords(cart_comm, rank, 2, coords);
 
-    MPI_Comm split_comm2;
-    int color2 = rank % Q;
-    MPI_Comm_split(MPI_COMM_WORLD, color2, rank, &split_comm2);
+    int local_size = (M + Q - 1) / Q;  
+    int *local_y = (int *)malloc(local_size * sizeof(int));
 
-    int elements_p_process = M / Q; 
-  
-    double* x = (double*) malloc(M * sizeof(double));
-    double* y = (double*) malloc(M * sizeof(double));
-    double* new_y = (double*) malloc(elements_p_process * sizeof(double));
-
+    int *global_y = NULL;
     if (rank == 0) {
+        global_y = (int *)malloc(M * sizeof(int));
         for (int i = 0; i < M; i++) {
-            x[i] = i;
+            global_y[i] = i;  
         }
     }
 
-    MPI_Scatter(x, M/Q, MPI_DOUBLE, x, M/Q, MPI_DOUBLE, 0, split_comm1);
-
-    MPI_Bcast(x, M/Q, MPI_DOUBLE, 0, split_comm2);
-
-    MPI_Allgather(x, M/Q, MPI_DOUBLE, y, M/Q, MPI_DOUBLE, split_comm2);
-
-    for (int J = 0; J < M; J++) {
-        int j = J / Q; 
-        int q = J % Q; 
-        if (q == rank) {
-            new_y[j] = y[J];
+    for (int i = 0; i < local_size; i++) {
+        int idx = rank + i * Q;
+        if (idx < M) {  
+            MPI_Scatter(global_y + idx, 1, MPI_INT, local_y + i, 1, MPI_INT, 0, MPI_COMM_WORLD);
         }
     }
-    
-    free(x);
-    free(y);
-    free(new_y);
-    MPI_Comm_free(&split_comm1);
-    MPI_Comm_free(&split_comm2);
 
     MPI_Finalize();
+    free(local_y);
+    free(y);
+
     return 0;
 }

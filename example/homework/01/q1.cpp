@@ -1,58 +1,69 @@
-#include <mpi.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <mpi.h>
 
-int main(int argc, char** argv) {
-    MPI_Init(&argc, &argv);
 
+int main(int argc, char *argv[]) {
     int M = 25;
 
-    int size;
+    int P, Q;
+    int i, j;
+
+    int rank, size;
+    MPI_Init(&argc, &argv);
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &size);
 
-    int rank;
-    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-
-
-    int P = size;
-    int Q = 1; 
-
-
-    MPI_Comm grid_comm;
-    int dims[2] = {P, Q};
-    int periods[2] = {0, 0}; 
-    MPI_Cart_create(MPI_COMM_WORLD, 2, dims, periods, 1, &grid_comm);
-
-    int coords[2];
-    MPI_Cart_coords(grid_comm, rank, 2, coords);
-
-    MPI_Comm row_comm, col_comm;
-    MPI_Comm_split(grid_comm, coords[0], rank, &col_comm); 
-    MPI_Comm_split(grid_comm, coords[1], rank, &row_comm); 
-
-    double* x = (double*) malloc(M * sizeof(double));
-    double* y = (double*) malloc(M * sizeof(double));
+    P = 1;
+    Q = size;
 
     if (rank == 0) {
-        for (int i = 0; i < M; i++) {
-            x[i] = i; 
+        printf("P = %d, Q = %d\n", P, Q);
+    }
+
+    int dims[2] = {P, Q};
+    int periods[2] = {0, 0};
+    MPI_Comm cart_comm;
+    MPI_Cart_create(MPI_COMM_WORLD, 2, dims, periods, 0, &cart_comm);
+
+    int coords[2];
+    MPI_Cart_coords(cart_comm, rank, 2, coords);
+
+    if (coords[1] == 0) {
+        if (coords[0] == 0) {
+            int *x = (int *)malloc(M * sizeof(int));
+            for (i = 0; i < M; i++) {
+                x[i] = i;
+            }
+            int *local_x = (int *)malloc(M/P * sizeof(int));
+            MPI_Scatter(x, M/P, MPI_INT, local_x, M/P, MPI_INT, 0, MPI_COMM_WORLD);
+            free(x);
+        } else {
+
+            int *local_x = (int *)malloc(M/P * sizeof(int));
+            MPI_Scatter(NULL, M/P, MPI_INT, local_x, M/P, MPI_INT, 0, MPI_COMM_WORLD);
         }
     }
 
-    if (coords[1] == 0) {
-        MPI_Scatter(coords[0] == 0 ? x : NULL, M / P, MPI_DOUBLE, x, M / P, MPI_DOUBLE, 0, col_comm);
+    int *y = (int *)malloc(M/P * sizeof(int));
+
+    MPI_Bcast(y, M/P, MPI_INT, 0, MPI_COMM_WORLD);
+
+    MPI_Allreduce(MPI_IN_PLACE, y, M/P, MPI_INT, MPI_SUM, cart_comm);
+
+    for (i = 0; i < P; i++) {
+        if (coords[0] == i) {
+            printf("Process (%d, %d) - y: ", coords[0], coords[1]);
+            for (j = 0; j < local_M; j++) {
+                printf("%d ", y[j]);
+            }
+            printf("\n");
+        }
+        MPI_Barrier(MPI_COMM_WORLD);
     }
 
-    MPI_Bcast(x, M / P, MPI_DOUBLE, 0, row_comm);
-    MPI_Allgather(x, M / P, MPI_DOUBLE, y, M / P, MPI_DOUBLE, row_comm);
-
-    free(x);
+    MPI_Finalize();
     free(y);
 
-    MPI_Comm_free(&col_comm);
-    MPI_Comm_free(&row_comm);
-    MPI_Comm_free(&grid_comm);
-
-    MPI_Finalize();
     return 0;
 }

@@ -21,7 +21,7 @@ int main(int argc, char *argv[]) {
     MPI_Cart_coords(cart_comm, rank, 2, coords);
 
     int local_size = (M + Q - 1) / Q;  
-    int *local_y = (int *)malloc(local_size * sizeof(int));
+    int *y = (int *)malloc(local_size * sizeof(int));
 
     int *global_y = NULL;
     if (rank == 0) {
@@ -34,13 +34,13 @@ int main(int argc, char *argv[]) {
     for (int i = 0; i < local_size; i++) {
         int idx = rank + i * Q;
         if (idx < M) {  
-            MPI_Scatter(global_y + idx, 1, MPI_INT, local_y + i, 1, MPI_INT, 0, MPI_COMM_WORLD);
+            MPI_Scatter(global_y + idx, 1, MPI_INT, y + i, 1, MPI_INT, 0, MPI_COMM_WORLD);
         }
     }
 
     MPI_Finalize();
-    free(local_y);
     free(y);
+
 
     return 0;
 }

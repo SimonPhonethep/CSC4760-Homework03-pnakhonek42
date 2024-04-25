@@ -31,15 +31,14 @@ int main(int argc, char *argv[]) {
 
     int *x = (int *)malloc(M * sizeof(int));
     if (coords[1] == 0) {
-        local_M = M / P;
-        int *local_x = (int *)malloc(local_M * sizeof(int));
+        int *local_x = (int *)malloc(M / P * sizeof(int));
         if (coords[0] == 0) {
             for (i = 0; i < M; i++) {
                 x[i] = i; 
             }
-            MPI_Scatter(x, local_M, MPI_INT, local_x, local_M, MPI_INT, 0, MPI_COMM_WORLD);
+            MPI_Scatter(x, M / P, MPI_INT, local_x, M / P, MPI_INT, 0, MPI_COMM_WORLD);
         } else {
-            MPI_Scatter(NULL, local_M, MPI_INT, local_x, local_M, MPI_INT, 0, MPI_COMM_WORLD);
+            MPI_Scatter(NULL, M / P, MPI_INT, local_x, M / P, MPI_INT, 0, MPI_COMM_WORLD);
         }
         free(local_x);
     }
@@ -51,7 +50,7 @@ int main(int argc, char *argv[]) {
                 y[i] = i * size + rank; 
             }
         }
-        MPI_Scatter(y, local_M, MPI_INT, y, local_M, MPI_INT, 0, cart_comm);
+        MPI_Scatter(y, M / P, MPI_INT, y, local_M, MPI_INT, 0, cart_comm);
     }
     free(y);
 
@@ -59,7 +58,7 @@ int main(int argc, char *argv[]) {
 
     int local_dot_product = 0;
     int global_dot_product = 0;
-    for (i = 0; i < local_M; i++) {
+    for (i = 0; i < M / P; i++) {
         local_dot_product += x[i] * y[i];
     }
 

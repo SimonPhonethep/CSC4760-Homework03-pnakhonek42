@@ -7,42 +7,54 @@ int main(int argc, char** argv) {
 
     int M = 25;
 
+    int P = 4;
+    int Q = 2; 
+
     int size;
     MPI_Comm_size(MPI_COMM_WORLD, &size);
+
+    if (P * Q != size) {
+        fprintf(stderr, "The number of processes must exactly match P*Q (%d*%d=%d).\n", P, Q, size);
+        MPI_Abort(MPI_COMM_WORLD, 1);
+    }
 
     int rank;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
-    int P = size; 
-    int Q = 1;
+    MPI_Comm grid_comm;
+    int dims[2] = {P, Q};
+    int periods[2] = {0, 0}; 
+    MPI_Cart_create(MPI_COMM_WORLD, 2, dims, periods, 1, &grid_comm);
 
-    MPI_Comm split_comm1;
-    int color1 = rank / Q;
-    MPI_Comm_split(MPI_COMM_WORLD, color1, rank, &split_comm1);
+    int coords[2];
+    MPI_Cart_coords(grid_comm, rank, 2, coords);
 
-    MPI_Comm split_comm2;
-    int color2 = rank % Q;
-    MPI_Comm_split(MPI_COMM_WORLD, color2, rank, &split_comm2);
+    MPI_Comm row_comm, col_comm;
+    MPI_Comm_split(grid_comm, coords[0], rank, &col_comm); 
+    MPI_Comm_split(grid_comm, coords[1], rank, &row_comm); 
 
     double* x = (double*) malloc(M * sizeof(double));
     double* y = (double*) malloc(M * sizeof(double));
 
     if (rank == 0) {
         for (int i = 0; i < M; i++) {
-            x[i] = i;
+            x[i] = i; 
         }
     }
 
-    MPI_Scatter(x, M/Q, MPI_DOUBLE, x, M/Q, MPI_DOUBLE, 0, split_comm1);
+    if (coords[1] == 0) {
+        MPI_Scatter(coords[0] == 0 ? x : NULL, M / P, MPI_DOUBLE, x, M / P, MPI_DOUBLE, 0, col_comm);
+    }
 
-    MPI_Bcast(x, M/Q, MPI_DOUBLE, 0, split_comm2);
-
-    MPI_Allgather(x, M/Q, MPI_DOUBLE, y, M/Q, MPI_DOUBLE, split_comm2);
+    MPI_Bcast(x, M / P, MPI_DOUBLE, 0, row_comm);
+    MPI_Allgather(x, M / P, MPI_DOUBLE, y, M / P, MPI_DOUBLE, row_comm);
 
     free(x);
     free(y);
-    MPI_Comm_free(&split_comm1);
-    MPI_Comm_free(&split_comm2);
+
+    MPI_Comm_free(&col_comm);
+    MPI_Comm_free(&row_comm);
+    MPI_Comm_free(&grid_comm);
 
     MPI_Finalize();
     return 0;

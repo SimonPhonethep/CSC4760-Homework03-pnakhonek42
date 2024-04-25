@@ -50,7 +50,7 @@ int main(int argc, char *argv[]) {
                 y[i] = i * size + rank; 
             }
         }
-        MPI_Scatter(y, M / P, MPI_INT, y, local_M, MPI_INT, 0, cart_comm);
+        MPI_Scatter(y, M / P, MPI_INT, y, M / P, MPI_INT, 0, cart_comm);
     }
     free(y);
 

@@ -7,19 +7,16 @@ int main(int argc, char** argv) {
 
     int M = 25;
 
-    int P = 4;
-    int Q = 2; 
-
     int size;
     MPI_Comm_size(MPI_COMM_WORLD, &size);
 
-    if (P * Q != size) {
-        fprintf(stderr, "The number of processes must exactly match P*Q (%d*%d=%d).\n", P, Q, size);
-        MPI_Abort(MPI_COMM_WORLD, 1);
-    }
-
     int rank;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+
+
+    int P = size;
+    int Q = 1; 
+
 
     MPI_Comm grid_comm;
     int dims[2] = {P, Q};

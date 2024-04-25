@@ -42,6 +42,7 @@ int main(int argc, char *argv[]) {
     for (int i = 0; i < M/Q; i++) {
         printf(" %d", y[i]);
     }
+    printf("\n");
 
     MPI_Finalize();
     free(y);

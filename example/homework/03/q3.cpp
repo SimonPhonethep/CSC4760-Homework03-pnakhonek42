@@ -38,6 +38,11 @@ int main(int argc, char *argv[]) {
         }
     }
 
+    printf("Process (%d, %d) - y:", coords[0], coords[1]);
+    for (i = 0; i < M/Q i++) {
+        printf(" %d", y[i]);
+    }
+
     MPI_Finalize();
     free(y);
 

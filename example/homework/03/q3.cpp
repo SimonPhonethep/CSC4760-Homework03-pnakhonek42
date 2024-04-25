@@ -12,7 +12,12 @@ int main(int argc, char *argv[]) {
     MPI_Comm_size(MPI_COMM_WORLD, &size);
     Q = size;
 
-        int dims[2] = {P, Q};
+
+    if (rank == 0) {
+        printf("P = %d, Q = %d\n", P, Q);
+    }
+
+    int dims[2] = {P, Q};
     int periods[2] = {0, 0};
     MPI_Comm cart_comm;
     MPI_Cart_create(MPI_COMM_WORLD, 2, dims, periods, 0, &cart_comm);
